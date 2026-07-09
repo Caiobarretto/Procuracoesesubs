@@ -738,14 +738,123 @@ function bytesToBase64(bytes){
   for(let i=0;i<bytes.length;i+=chunk) binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
   return btoa(binary);
 }
-function sanitizeFileName(v){return String(v||'arquivo').replace(/[\/:*?"<>|]+/g,'_').trim()||'arquivo'}
-function buildRenewalTemplate(selectedRows){
-  const data=[...new Map(selectedRows.map(r=>{const nome=String(val(r,aliases.cliente)||r.CLIENTE||'').trim();const cnpj=String(val(r,aliases.cnpj)||r.CNPJ||'').trim();return [nome+'|'+cnpj,{CLIENTE:nome,CNPJ:cnpj,UF:String(val(r,aliases.uf)||''),ENDERECO:String(val(r,aliases.endereco)||''),'ADVOGADOS QUE RECEBERÃO OS PODERES':'','RESPONSÁVEIS AUTORIZADOS PARA ACORDOS POR FAIXA DE VALOR':'','ALTERAÇÃO CONTRATUAL OU DE REPRESENTAÇÃO':'','OBSERVAÇÕES':''}]})).values()];
-  const ws=XLSX.utils.json_to_sheet(data);
-  ws['!cols']=[{wch:48},{wch:22},{wch:8},{wch:48},{wch:48},{wch:55},{wch:48},{wch:35}];
-  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'PREENCHIMENTO');
-  const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
-  return new File([out],'Planilha padrão - renovação de substabelecimentos.xlsx',{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+async function buildRenewalTemplate(selectedRows) {
+  const templateName =
+    'Planilha padrão - renovação de substabelecimentos.xlsx';
+
+  // Busca a planilha na mesma pasta do index.html no GitHub.
+  const response = await fetch(
+    './' + encodeURIComponent(templateName),
+    { cache: 'no-store' }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      'Não foi possível carregar a planilha padrão hospedada no GitHub. ' +
+      'Confirme se o arquivo está na mesma pasta do index.html.'
+    );
+  }
+
+  const buffer = await response.arrayBuffer();
+
+  // Abre o arquivo existente, preservando estilos e estrutura.
+  const wb = XLSX.read(buffer, {
+    type: 'array',
+    cellStyles: true,
+    cellDates: true
+  });
+
+  // Usa a aba PREENCHIMENTO, quando existir.
+  const sheetName = wb.SheetNames.includes('PREENCHIMENTO')
+    ? 'PREENCHIMENTO'
+    : wb.SheetNames[0];
+
+  const ws = wb.Sheets[sheetName];
+
+  if (!ws) {
+    throw new Error(
+      'A planilha padrão não possui uma aba válida.'
+    );
+  }
+
+  // Monta os dados dos clientes selecionados.
+  // Cada item do array representa uma linha da planilha.
+  const data = [
+    ...new Map(
+      selectedRows.map(row => {
+        const nome = String(
+          val(row, aliases.cliente) || row.CLIENTE || ''
+        ).trim();
+
+        const cnpj = String(
+          val(row, aliases.cnpj) || row.CNPJ || ''
+        ).trim();
+
+        return [
+          nome + '|' + cnpj,
+          [
+            nome,                                      // Coluna A - Cliente
+            cnpj,                                      // Coluna B - CNPJ
+            String(val(row, aliases.uf) || ''),       // Coluna C - UF
+            String(val(row, aliases.endereco) || ''), // Coluna D - Endereço
+            '',                                        // Coluna E
+            '',                                        // Coluna F
+            '',                                        // Coluna G
+            '',                                        // Coluna H
+            ''                                         // Coluna I
+          ]
+        ];
+      })
+    ).values()
+  ];
+
+  /*
+   * Limpa apenas os dados antigos da linha 2 em diante.
+   * O cabeçalho, as larguras das colunas e a estrutura do modelo
+   * permanecem preservados.
+   */
+  const currentRange = XLSX.utils.decode_range(
+    ws['!ref'] || 'A1:I1'
+  );
+
+  for (
+    let row = 1;
+    row <= Math.max(currentRange.e.r, 1);
+    row++
+  ) {
+    for (let col = 0; col <= 8; col++) {
+      delete ws[
+        XLSX.utils.encode_cell({
+          r: row,
+          c: col
+        })
+      ];
+    }
+  }
+
+  // Insere as informações a partir da célula A2.
+  XLSX.utils.sheet_add_aoa(ws, data, {
+    origin: 'A2'
+  });
+
+  // Atualiza o intervalo utilizado da planilha.
+  ws['!ref'] = `A1:I${Math.max(2, data.length + 1)}`;
+
+  // Gera uma cópia preenchida do modelo.
+  const out = XLSX.write(wb, {
+    bookType: 'xlsx',
+    type: 'array',
+    cellStyles: true
+  });
+
+  return new File(
+    [out],
+    templateName,
+    {
+      type:
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    }
+  );
 }
 function buildRenewalEmailHtml(selectedRows){
   const clients=[...new Map(selectedRows.map(r=>{const nome=String(val(r,aliases.cliente)||r.CLIENTE||'').trim();const cnpj=String(val(r,aliases.cnpj)||r.CNPJ||'').trim();const ultima=fmtDate(val(r,aliases.ultima))||'Não informada';const e=expiryInfo(r);return [nome+'|'+cnpj,{nome,cnpj:cnpj||'Não informado',ultima,status:e.status,dias:e.days}]})).values()].filter(x=>x.nome);
