@@ -642,7 +642,7 @@ async function generateDocx(d){
       barRun=new D.ImageRun({data:barBytes,transformation:{width:12,height:78},type:'png'});
     }catch(logoErr){console.warn('Identidade visual QCA não carregada para o Word:',logoErr);}
     const clientRuns=[];
-    clientes.forEach((c,i)=>{if(i)clientRuns.push(run('; '));clientRuns.push(run(c.nome||'[NOME DO CLIENTE]',{bold:true}),run(', pessoa jurídica de direito privado, inscrita no CNPJ sob o n° '),run(c.cnpj||'[INSERIR NÚMERO]',{bold:true}),run(', com sede na '),run(sentenceCase(c.endereco||'[INSERIR ENDEREÇO]'),{bold:true}))});
+    clientes.forEach((c,i)=>{if(i)clientRuns.push(run('; '));clientRuns.push(run(c.nome||'[NOME DO CLIENTE]',{bold:true}),run(', pessoa jurídica de direito privado, inscrita no CNPJ sob o n° '),run(c.cnpj||'[INSERIR NÚMERO]',{bold:true}),run(', com sede na '),run(sentenceCase(c.endereco||'[INSERIR ENDEREÇO]'),{bold:false}))});
     const advRuns=list=>{const out=[];(list||[]).forEach((a,i)=>{if(i)out.push(run('; '));out.push(run(a.nome||'[NOME DO ADVOGADO]',{bold:true}),run(', brasileiro(a), '),run(String(a.estado||a.estadoCivil||'[INSERIR ESTADO CIVIL]').toLowerCase()),run(', advogado(a), OAB/'),run(a.uf||uf,{bold:true}),run(' '),run(a.oab||'[INSERIR NÚMERO]',{bold:true}))});return out};
     const insideRuns=inside.length?advRuns(inside):[run('[NOME DO ADVOGADO]',{bold:true}),run(', brasileiro(a), [inserir estado civil], advogado(a), OAB/[UF] '),run('[INSERIR NÚMERO]',{bold:true})];
     const outsideRuns=advRuns(outside);
