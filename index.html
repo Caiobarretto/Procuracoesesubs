@@ -689,7 +689,7 @@ function renderDocPreview(d){
     let inside=advogados.filter(a=>norm(a.origem).includes('DENTRO')&&(!a.uf||norm(a.uf)===norm(uf)));
     const outside=advogados.filter(a=>!inside.includes(a));
     if(d?.precisaVal==='sim'&&d?.validador&&!inside.some(a=>norm(a.nome)===norm(d.validador))){const vi=personDetails(d.validador,uf);inside=[...inside,{nome:d.validador,uf:vi.uf||uf,oab:vi.oab||'',estado:vi.estadoCivil||vi.estado||'casado(a)',origem:'DENTRO DO CONTRATO'}]}
-    const clientHtml=clientes.map(c=>`<strong>${escapeHtml(c.nome||'[NOME DO CLIENTE]')}</strong>, pessoa jurídica de direito privado, inscrita no CNPJ sob o n° <strong>${escapeHtml(c.cnpj||'[INSERIR NÚMERO]')}</strong>, com sede na <strong>${escapeHtml(sentenceCase(c.endereco||'[INSERIR ENDEREÇO]'))}`).join('; ');
+    const clientHtml=clientes.map(c=>`<strong>${escapeHtml(c.nome||'[NOME DO CLIENTE]')}</strong>, pessoa jurídica de direito privado, inscrita no CNPJ sob o n° <strong>${escapeHtml(c.cnpj||'[INSERIR NÚMERO]')}</strong>, com sede na ${escapeHtml(sentenceCase(c.endereco||'[INSERIR ENDEREÇO]'))}`).join('; ');
     const advHtml=a=>`<strong>${escapeHtml(a.nome||'[NOME DO ADVOGADO]')}</strong>, brasileiro(a), ${escapeHtml(String(a.estado||a.estadoCivil||'[INSERIR ESTADO CIVIL]').toLowerCase())}, advogado(a), OAB/${escapeHtml(a.uf||uf)} <strong>${escapeHtml(a.oab||'[INSERIR NÚMERO]')}</strong>`;
     const insideHtml=inside.length?inside.map(advHtml).join('; '):'<strong>[NOME DO ADVOGADO]</strong>, brasileiro(a), [inserir estado civil], advogado(a), OAB/[UF] <strong>[INSERIR NÚMERO]</strong>';
     const outsideHtml=outside.map(advHtml).join('; ');
